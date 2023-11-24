@@ -1,0 +1,18 @@
+2023-11-23
+After looking at multiple options, Spencer found https://www.maket.ai/.  It generates different
+types of floor plans, but issues can be found, like room without doors, rooms that don't connect,
+and others.  From this, a plan was made to have a small working model.  It consists of a prompt
+phase, a drawing phase and a verification phase.
+
+The prompt phase would turn user statements into usable keywords, like bedroom 20x14 or kitchen
+25x30, so the drawing phase can be executed.
+
+The drawing phase would use Python's Turtle Graphics, https://docs.python.org/3/library/turtle.html,
+to draw the different possibilities from the keywords.  The drawing tool should have a minimum code as
+possible, and relay on logic to determine where to draw.  For now, as it only draws rectangles, it
+would be operated like Google's kids coding game, https://www.google.com/logos/2017/logo17/logo17.html.
+Doors would also be generated at this stage, by either erasing parts after drawing, of by lifting the
+Turtle pen at predetermined positions.
+
+Finally, the verification phase would generate a path between every room to make sure all of them are
+accessible from the inside.
