@@ -1,0 +1,7 @@
+1) have a CSV file with the room name and size
+   Format:
+	  Name, X size, Y size
+
+2) Python script get the file and save as pandas dataframe
+
+3) Python script use Turtle Graphics to draw the rectangles one beside the other

@@ -1,0 +1,3 @@
+- csv very useful to get the info
+- lack of proper positionning of the rooms. they are drawn one after the other in the list order
+- cannot design more than four rooms without stacking rooms on each other
