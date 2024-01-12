@@ -1,0 +1,10 @@
+The previous prototype could not dynamically or correctly add more than four rooms.
+To counter that issue, Raylib, a game engine library, will be used to make the rooms
+"fall" in place similar to a game of Tetris.
+
+1) have a CSV file with the rooms name, size, and position (North, South, East, West)
+
+2) C# script gets the file and save as an array
+
+3) C# script uses Raylib to spawn an anchor room, then make the others fall in place
+   from the proper direction

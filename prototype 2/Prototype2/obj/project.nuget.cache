@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "zBGsD8yCzzaIQzXrRVWtS/QysBtWPV8Ks9t5ixg3FaCP+TboLUbZD5AU/n1mX0X8W4maDDbaRCtOhxnw8Bz++w==",
+  "success": true,
+  "projectFilePath": "D:\\User\\Charles-Antoine\\Documents\\GitHub\\Architectural-AI\\prototype 2\\Prototype2\\Prototype2.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\User\\.nuget\\packages\\raylib-cs\\5.0.0\\raylib-cs.5.0.0.nupkg.sha512",
+    "C:\\Users\\User\\.nuget\\packages\\system.numerics.vectors\\4.5.0\\system.numerics.vectors.4.5.0.nupkg.sha512"
+  ],
+  "logs": []
+}
