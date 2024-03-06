@@ -1,0 +1,3 @@
+- C# and Raylib allow easy creation of Windows forms
+- Rooms are always aligned with the center of the side they are comming from.  Can easly be fixed by adding offsets
+- no easy way to add doors and windows
