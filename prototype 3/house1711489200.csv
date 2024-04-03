@@ -1,0 +1,5 @@
+room0,7,3,rectangle,east
+room1,2,10,rectangle,north
+room2,9,9,rectangle,south
+room3,9,8,rectangle,south
+room4,2,4,rectangle,north

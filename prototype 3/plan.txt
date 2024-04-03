@@ -1,0 +1,14 @@
+An open-source software, FreeCad, has been found while developing prototype 2.
+FreeCad (https://www.freecad.org/) can be used for anything related to 3D modeling,
+from CAD and CAM to achitecture.  Python Macros can also be used to generate all
+the elements.
+
+Similar to previous prototypes, a csv with room details will be used to generate
+the walls of each room
+
+1) have a CSV file with:
+	Name, x size, y size, position (North, South, East, West)
+
+2) Python macro loads the csv file as pandas dataframe
+
+3) draw the house plan using Freecad

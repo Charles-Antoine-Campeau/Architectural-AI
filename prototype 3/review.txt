@@ -1,0 +1,3 @@
+- FreeCAD allows easy creation of the floor plan with build-in architecture functions
+- Prototype 3 create from csv using only base Python and FreeCAD elements
+- currently has overlaping walls preventing doors to form correctly

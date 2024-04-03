@@ -1,0 +1,122 @@
+
+import csv
+import tkinter
+import FreeCAD
+import Draft
+import Arch
+
+from enum import Enum
+from PySide.QtGui import QInputDialog
+from tkinter import filedialog as fd
+from FreeCAD import Vector
+
+def getInfo():
+	"""
+	Get the rooms from the csv and add them to the list
+	"""
+	# get the path to the csv	
+	tkinter.Tk().withdraw()
+	file_name = fd.askopenfilename(title = "Select file",filetypes = (("CSV Files","*.csv"),))
+	
+	# read the csv file and add the content to the room list
+	with open(file_name, newline='') as csvfile:
+		content = csv.reader(csvfile, delimiter=',', quotechar='|')
+		for row in content:
+							# name,  xSize,              ySize,              Shape,  offset  Base(bottom left corner)
+			roomList.append([row[0], float(row[1])*1000, float(row[2])*1000, row[3], row[4], Vector(0.0, 0.0, 0.0)])
+
+def draw():
+	"""
+	Draw the wires for each rooms
+	"""
+
+	for index, room in enumerate(roomList):
+		#get the width and height of the room
+		width = Vector(room[1], 0.0, 0.0)
+		height = Vector(0.0, room[2], 0.0)
+		
+		anyOverlap(index)
+
+		#create an anchor point
+		pl = FreeCAD.Placement()
+		pl.Rotation.Q = (0.0, 0.0, 0.0, 1.0)
+		base = room[-1]
+		pl.Base = base		
+
+		# get the corners of the room and draw the wall between them
+		points = [base, base+width, base+width+height, base+height]
+		
+		"""		for i in range(4):
+			print(points[i : i+1])
+			line = Draft.make_wire(points[i : i+1], placement=pl, closed=True, face=False, support=None)
+			line.Label = room[0] + f" room{i}"
+		"""
+		line = Draft.make_wire(points, placement=pl, closed=True, face=False, support=None)
+		line.Label = room[0]
+		Draft.autogroup(line)
+		FreeCAD.ActiveDocument.recompute()
+
+def anyOverlap(currentIndex:int):
+	"""
+	check if the room at index overlap with any of the previous ones
+	"""
+
+	# the first room never overlap
+	if currentIndex == 0:
+		return
+
+	currentRoom = roomList[currentIndex]
+	
+	for index, room in enumerate(roomList):
+		# has gone through all the previous rooms
+		if index == currentIndex:
+			return
+		
+		# determine if there is an overlap
+		xOverlap = (currentRoom[-1].x < room[-1].x + room[1]) and (currentRoom[-1].x + currentRoom[1] > room[-1].x)
+		yOverlap = (currentRoom[-1].y < room[-1].y + room[2]) and (currentRoom[-1].y + currentRoom[2] > room[-1].y)
+		
+		# if there is overlap, move the house towards the given offset
+		if xOverlap and yOverlap:
+			if currentRoom[4].lower() == "west":
+				if currentRoom[-1].x == room[-1].x:
+					currentRoom[-1] = currentRoom[-1] - Vector(currentRoom[1], 0, 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] - Vector(room[1], 0, 0)
+
+			if currentRoom[4].lower() == "east":
+				if currentRoom[-1].x == room[-1].x:
+					currentRoom[-1] = currentRoom[-1] + Vector(room[1], 0, 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] + Vector(currentRoom[1], 0, 0)
+
+			if currentRoom[4].lower() == "north":
+				if currentRoom[-1].y == room[-1].y:
+					currentRoom[-1] = currentRoom[-1] + Vector(0, room[2], 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] + Vector(0, currentRoom[2], 0)
+
+			if currentRoom[4].lower() == "south":
+				if currentRoom[-1].y == room[-1].y:
+					currentRoom[-1] = currentRoom[-1] - Vector(0, currentRoom[2], 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] - Vector(0, room[2], 0)
+	
+def makeWalls():
+	"""
+	convert every wires into walls
+	"""
+	obj = Arch.makeWall(FreeCAD.ActiveDocument.Wire)
+	for i in range(1, len(roomList)):
+		room = FreeCAD.ActiveDocument.getObject(f"Wire{i:03}")
+		Arch.makeWall(room)
+	
+	FreeCAD.ActiveDocument.recompute()
+
+
+# MAIN
+################################
+roomList = []
+getInfo()
+draw()
+makeWalls()
