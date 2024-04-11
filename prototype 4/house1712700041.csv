@@ -1,0 +1,8 @@
+room0,3,11,rectangle,east,False
+room1,8,5,rectangle,north,False
+room2,11,7,rectangle,south,True
+room3,4,7,rectangle,north,True
+room4,9,7,rectangle,south,True
+room5,11,2,rectangle,east,True
+room6,9,6,rectangle,north,True
+room7,7,9,rectangle,south,True

@@ -1,0 +1,8 @@
+This prototype will be an upgrade from prototype 3, as it couldn't create doors and windows.
+The following changes will be made to the code of prototype 3:
+
+1) instead of building one wall for each room, there will be four different wall entity
+
+2) overlaping walls will be removed
+
+3) doors will be added between rooms

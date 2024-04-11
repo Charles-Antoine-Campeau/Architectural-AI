@@ -1,0 +1,4 @@
+Room 1,15,20,Rectangle,South,FALSE
+Room 2,15,25,Rectangle,East,FALSE
+Room 3,30,25,Rectangle,West,TRUE
+Room 4,15,10,Rectangle,South,FALSE

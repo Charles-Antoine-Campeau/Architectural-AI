@@ -1,0 +1,264 @@
+import csv
+import tkinter
+import FreeCAD
+import Draft
+import Arch
+import importDXF
+import os
+import WorkingPlane
+
+from enum import Enum
+from PySide.QtGui import QInputDialog
+from tkinter import filedialog as fd
+from FreeCAD import Vector
+
+def createFile(): 
+	"""
+	Create a new document to generate the house in
+	"""
+	return FreeCAD.newDocument("Plan_Generator")
+
+def saveFile():
+	"""
+	Saves the document and a copy as a dwg file
+	"""
+	dir = os.path.dirname(__file__)
+	doc_path = os.path.join(dir, "temp.FCStd")
+	doc.saveAs(doc_path)
+	
+	dwg_path = os.path.join(dir, "output.dwg")
+	importDXF.export(FreeCAD.ActiveDocument.Objects, dwg_path)
+
+def getInfo():
+	"""
+	Get the rooms from the csv and add them to the list
+	"""
+	# get the path to the csv	
+	tkinter.Tk().withdraw()
+	file_name = fd.askopenfilename(title = "Select file",filetypes = (("CSV Files","*.csv"),))
+	
+	# read the csv file and add the content to the room list
+	with open(file_name, newline='') as csvfile:
+		content = csv.reader(csvfile, delimiter=',', quotechar='|')
+		for i, row in enumerate(content):
+							# name,  xSize,              ySize,              Shape,  offset, hasExteriorDoor, Base(bottom left corner) !!!!BASE IS ALWAYS LAST!!!!
+			roomList.append([row[0], float(row[1])*1000, float(row[2])*1000, row[3], row[4], row[5], Vector(0.0, 0.0, 0.0)])
+			roomList[-1][5] = True if roomList[-1][5].lower() == "true" else False
+
+def draw():
+	"""
+	Draw the wires for each rooms
+	"""
+	for index, room in enumerate(roomList):
+		#get the width and height of the room
+		width = Vector(room[1], 0.0, 0.0)
+		height = Vector(0.0, room[2], 0.0)
+		
+		anyOverlap(index)
+
+		#create an anchor point
+		pl = FreeCAD.Placement()
+		pl.Rotation.Q = (0.0, 0.0, 0.0, 1.0)
+		base = room[-1]
+		pl.Base = base		
+
+		# get the corners of the room and draw the wall between them
+		points = [base, base+width, base+width+height, base+height]
+		
+		for i in range(4):
+			line = Draft.make_wire([points[i-1], points[i]], placement=pl, closed=True, face=False, support=None)
+			line.Label = room[0] + f" wall{i+1}"
+		
+		Draft.autogroup(line)
+		FreeCAD.ActiveDocument.recompute()
+
+def anyOverlap(currentIndex:int):
+	"""
+	check if the room at index overlap with any of the previous ones
+	"""
+
+	# the first room never overlap
+	if currentIndex == 0:
+		return
+
+	currentRoom = roomList[currentIndex]
+	
+	for index, room in enumerate(roomList):
+		# has gone through all the previous rooms
+		if index == currentIndex:
+			return
+		
+		# determine if there is an overlap
+		xOverlap = (currentRoom[-1].x < room[-1].x + room[1]) and (currentRoom[-1].x + currentRoom[1] > room[-1].x)
+		yOverlap = (currentRoom[-1].y < room[-1].y + room[2]) and (currentRoom[-1].y + currentRoom[2] > room[-1].y)
+		
+		# if there is overlap, move the house towards the given offset
+		if xOverlap and yOverlap:
+			if currentRoom[4].lower() == "west":
+				if currentRoom[-1].x == room[-1].x:
+					currentRoom[-1] = currentRoom[-1] - Vector(currentRoom[1], 0, 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] - Vector(room[1], 0, 0)
+
+			if currentRoom[4].lower() == "east":
+				if currentRoom[-1].x == room[-1].x:
+					currentRoom[-1] = currentRoom[-1] + Vector(room[1], 0, 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] + Vector(currentRoom[1], 0, 0)
+
+			if currentRoom[4].lower() == "north":
+				if currentRoom[-1].y == room[-1].y:
+					currentRoom[-1] = currentRoom[-1] + Vector(0, room[2], 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] + Vector(0, currentRoom[2], 0)
+
+			if currentRoom[4].lower() == "south":
+				if currentRoom[-1].y == room[-1].y:
+					currentRoom[-1] = currentRoom[-1] - Vector(0, currentRoom[2], 0)
+				else:
+					currentRoom[-1] = currentRoom[-1] - Vector(0, room[2], 0)
+
+def getMaxLen(points:list):
+	"""
+	Take a list of points and return the greatest distance
+	Return: an int representing the greatest distance
+	"""
+	max = 0
+	for i, point in enumerate(points):
+		for j in range(i+1, len(points)):
+			tmp = point - points[j]
+			if abs(tmp) > max:
+				max = abs(tmp)
+	return max
+
+def removeOverlapingLines():
+	"""
+	Find which lines are overlaping and remove the shortest one.
+	Return a list with the names of the overlaping walls that were
+	not deleted to add the doors
+	"""
+	toRemove = [] # the overlaping wall to remove
+	toAddDoor = [] # the list of walls that requires a door.  has all overlapping walls that were not removed and exterior wall that needs a door
+	interiorWalls = [] # list all the interior walls
+
+	for i, obj in enumerate(FreeCAD.ActiveDocument.Objects):
+		# get the start and end points of the current line
+		Ax = obj.Start.x
+		Ay = obj.Start.y
+		Bx = obj.End.x
+		By = obj.End.y
+		
+		for j, snd in enumerate(FreeCAD.ActiveDocument.Objects):
+			isInterior = False
+			# compare only elements that come after in the list
+			if j > i:
+				# get the second line star and end points
+				Cx = snd.Start.x
+				Cy = snd.Start.y
+				Dx = snd.End.x
+				Dy = snd.End.y
+				
+				# the lines are parallel along y
+				if Ax == Bx == Cx == Dx:
+					lenAB = abs(Ay-By)
+					lenCD = abs(Cy-Dy)
+					maxLen = getMaxLen([Ay, By, Cy, Dy])
+
+					if (lenAB+lenCD-maxLen) > 0:
+						isInterior = True
+						if lenAB < lenCD:
+							toRemove.append(obj.Name)
+							toAddDoor.append((snd.Name, obj.Start, obj.End))
+						else:	
+							toRemove.append(snd.Name)
+							toAddDoor.append((obj.Name, snd.Start, snd.End))
+						
+				
+				# the lines are parallel along x
+				if Ay == By == Cy == Dy:
+					lenAB = abs(Ax-Bx)
+					lenCD = abs(Cx-Dx)
+					maxLen = getMaxLen([Ax, Bx, Cx, Dx])
+
+					if (lenAB+lenCD-maxLen) > 0:
+						isInterior = True
+						if lenAB < lenCD:
+							toRemove.append(obj.Name)
+							toAddDoor.append((snd.Name, obj.Start, obj.End))
+						else:
+							toRemove.append(snd.Name)
+							toAddDoor.append((obj.Name, snd.Start, snd.End))
+
+				if isInterior:
+					interiorWalls.append(snd.Name)
+					interiorWalls.append(obj.Name)
+	
+	# create a list of exterior walls from the list of interior walls
+	exteriorWalls = []
+	for obj in FreeCAD.ActiveDocument.Objects:
+		if obj.Name not in interiorWalls:
+			exteriorWalls.append(obj.Label)
+	
+	# determine which exterior walls need a door
+	for room in roomList:
+		print(room[5], " ", type(room[5]))
+		if room[5]:
+			for wall in exteriorWalls:
+				if room[0] in wall:
+					obj = FreeCAD.ActiveDocument.getObjectsByLabel(wall)[0]
+					toAddDoor.append((obj.Name, obj.Start, obj.End))
+					break
+
+	# remove the overlapping walls
+	for obj in toRemove:
+		FreeCAD.ActiveDocument.removeObject(obj)
+	
+	return toAddDoor
+
+def makeWalls():
+	"""
+	convert every wires into walls
+	"""
+	try:
+		obj = Arch.makeWall(FreeCAD.ActiveDocument.Line)
+	except:
+		pass
+
+	for i in range(1, len(roomList)*4):
+		room = FreeCAD.ActiveDocument.getObject(f"Line{i:03}")
+		Arch.makeWall(room)
+	
+	FreeCAD.ActiveDocument.recompute()
+
+def addDoors(doorWalls):
+	"""
+	Add a door on every wall in the list
+	"""
+	for wall, start, end in doorWalls:
+		if wall == "Line":
+			# create the placement from the wall, set the door location half way on the deleted wall, then create the door
+			pl = WorkingPlane.getPlacementFromFace(FreeCAD.ActiveDocument.getObject("Wall").Shape.Faces[0])
+			pl.Base = FreeCAD.Vector(start.x+(end.x-start.x)/2, start.y+(end.y-start.y)/2, 0)
+			door = Arch.makeWindowPreset('Simple door', width=1000.0, height=2000.0, h1=100.0, h2=100.0, h3=110.0, w1=198.0, w2=100.0, o1=0.0, o2=100.0, placement=pl)
+			door.Hosts = [FreeCAD.ActiveDocument.getObject("Wall")]
+		else:
+			#get the wall number to add the door
+			wallNumber = int("".join([i for i in wall if i.isdigit()]))
+			
+			# create the placement from the wall, set the door location half way on the deleted wall, then create the door
+			pl = WorkingPlane.getPlacementFromFace(FreeCAD.ActiveDocument.getObject(f"Wall{wallNumber:03}").Shape.Faces[0])
+			pl.Base = FreeCAD.Vector(start.x+(end.x-start.x)/2, start.y+(end.y-start.y)/2, 0)
+			door = Arch.makeWindowPreset('Simple door', width=1000.0, height=2000.0, h1=100.0, h2=100.0, h3=110.0, w1=198.0, w2=100.0, o1=0.0, o2=100.0, placement=pl)
+			door.Hosts = [FreeCAD.ActiveDocument.getObject(f"Wall{wallNumber:03}")]
+		
+
+# MAIN
+################################
+roomList = []
+doc = createFile()
+getInfo()
+draw() # calls anyOverlap who calls getMaxLen
+doorWalls = removeOverlapingLines()
+makeWalls()
+addDoors(doorWalls)
+saveFile()

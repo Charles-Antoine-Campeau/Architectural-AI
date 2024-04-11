@@ -1,0 +1,3 @@
+- separating rooms into multiple walls allows easy door implementation
+- there is a door between each rooms and an exterior door in every rooms that requires one
+- a new document is created and saved everytime the macro is run

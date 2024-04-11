@@ -1,0 +1,4 @@
+Kitchen,15,10,rectangle,North,FALSE
+Living room,20,12,rectangle,South,TRUE
+Bedroom 1,7,7,rectangle,South,FALSE
+Washroom,5,7,rectangle,east,FALSE
